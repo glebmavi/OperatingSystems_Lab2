@@ -17,7 +17,7 @@ namespace IOLatencyWriteBenchmark {
     constexpr size_t FILE_SIZE = 1024 * 1024; // File size of 1 MB
 
     void run(const int iterations, const bool verbose, const bool use_cache) {
-        const std::vector<char> buffer(BLOCK_SIZE, 'a'); // Buffer for writing
+        const std::vector buffer(BLOCK_SIZE, 'a'); // Buffer for writing
         std::vector<double> durations; // Time durations for each iteration
 
         for (int i = 0; i < iterations; ++i) {

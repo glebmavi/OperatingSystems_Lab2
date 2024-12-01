@@ -3,6 +3,8 @@ project(OS_Lab2)
 
 set(CMAKE_CXX_STANDARD 20)
 
+set(CMAKE_CXX_FLAGS_DEBUG "-O3 -g -march=native -mtune=native -flto -funroll-loops -fomit-frame-pointer")
+
 # Dynamic library
 add_library(lab2_cache SHARED API/lab2_cache.cpp)
 

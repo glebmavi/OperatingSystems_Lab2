@@ -424,7 +424,7 @@ int main(const int argc, char* argv[]) {
 #include <sys/stat.h>
 
 #define BLOCK_SIZE 4096     // Block size in bytes
-#define MAX_CACHE_SIZE 64 // Max blocks in cache
+#define MAX_CACHE_SIZE 1024 // Max blocks in cache
 
 struct CacheBlock {
     char* data;           // Pointer to block data
@@ -772,33 +772,205 @@ cd $BUILD_DIR || exit
 ./OS_Lab2_write 100 --use-cache
 ./OS_Lab2_read testfile.dat 100
 ./OS_Lab2_read testfile.dat 100 --use-cache
+
+
+# With strace to know the amount of system calls to disk
+strace -c ./OS_Lab2_write 100
+strace -c ./OS_Lab2_write 100 --use-cache
+strace -c ./OS_Lab2_read testfile.dat 100
+strace -c ./OS_Lab2_read testfile.dat 100 --use-cache
 ```
 
 ### Write без кэша
+```
 Overall Statistics:
-Average write latency: 0.0817999 seconds
-Minimum write latency: 0.0788963 seconds
-Maximum write latency: 0.0884632 seconds
+Average write latency: 0.0822461 seconds
+Minimum write latency: 0.0786764 seconds
+Maximum write latency: 0.0933617 seconds
+```
+
+```
+% time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+99.58    1.246773           6    204805           write
+0.19    0.002435          24       100           unlink
+0.10    0.001298          12       100           fsync
+0.10    0.001225          11       111         5 openat
+0.03    0.000349           3       106           close
+0.00    0.000000           0         5           read
+0.00    0.000000           0         7           fstat
+0.00    0.000000           0        26           mmap
+0.00    0.000000           0         7           mprotect
+0.00    0.000000           0         1           munmap
+0.00    0.000000           0         3           brk
+0.00    0.000000           0         2           pread64
+0.00    0.000000           0         1         1 access
+0.00    0.000000           0         1           execve
+0.00    0.000000           0         1           arch_prctl
+0.00    0.000000           0         1           futex
+0.00    0.000000           0         1           set_tid_address
+0.00    0.000000           0         2         2 newfstatat
+0.00    0.000000           0         1           set_robust_list
+0.00    0.000000           0         1           prlimit64
+0.00    0.000000           0         1           getrandom
+0.00    0.000000           0         1           rseq
+------ ----------- ----------- --------- --------- ----------------
+100.00    1.252080           6    205284         8 total
+```
 
 ### Write с кэшем
+```
 Overall Statistics:
-Average write latency: 0.00737696 seconds
-Minimum write latency: 0.00683776 seconds
-Maximum write latency: 0.00983191 seconds
+Average write latency: 0.0075996 seconds
+Minimum write latency: 0.00644933 seconds
+Maximum write latency: 0.0173791 seconds
+```
+
+```
+% time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+ 78.82    0.124028           4     25600           pwrite64
+ 18.27    0.028753           1     25602           pread64
+  1.06    0.001668           8       200           fsync
+  0.98    0.001541          15       100           unlink
+  0.54    0.000849           7       111         5 openat
+  0.13    0.000212           2       106           close
+  0.11    0.000177           6        26           mmap
+  0.03    0.000044           6         7           mprotect
+  0.01    0.000019           2         7           fstat
+  0.01    0.000019           2         7           brk
+  0.01    0.000011           2         5           read
+  0.01    0.000011          11         1           munmap
+  0.00    0.000007           1         5           write
+  0.00    0.000003           3         1           futex
+  0.00    0.000003           3         1           set_tid_address
+  0.00    0.000003           3         1           prlimit64
+  0.00    0.000003           3         1           getrandom
+  0.00    0.000002           2         1           arch_prctl
+  0.00    0.000002           2         1           rseq
+  0.00    0.000001           1         1           set_robust_list
+  0.00    0.000000           0         1         1 access
+  0.00    0.000000           0         1           execve
+  0.00    0.000000           0         2         2 newfstatat
+------ ----------- ----------- --------- --------- ----------------
+100.00    0.157356           3     51788         8 total
+```
 
 ### Read без кэша
+```
 Overall Statistics:
-Average read latency: 0.0282485 seconds
-Minimum read latency: 0.0268514 seconds
-Maximum read latency: 0.0321585 seconds
+Average read latency: 0.0300317 seconds
+Minimum read latency: 0.0288578 seconds
+Maximum read latency: 0.0344697 seconds
+```
+
+```
+% time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+ 99.90    0.759692           3    204905           read
+  0.07    0.000514           4       111         5 openat
+  0.03    0.000246           2       106           close
+  0.00    0.000010           2         5           write
+  0.00    0.000000           0         7           fstat
+  0.00    0.000000           0        26           mmap
+  0.00    0.000000           0         7           mprotect
+  0.00    0.000000           0         1           munmap
+  0.00    0.000000           0         3           brk
+  0.00    0.000000           0         2           pread64
+  0.00    0.000000           0         1         1 access
+  0.00    0.000000           0         1           execve
+  0.00    0.000000           0         1           arch_prctl
+  0.00    0.000000           0         1           futex
+  0.00    0.000000           0         1           set_tid_address
+  0.00    0.000000           0         2         2 newfstatat
+  0.00    0.000000           0         1           set_robust_list
+  0.00    0.000000           0         1           prlimit64
+  0.00    0.000000           0         1           getrandom
+  0.00    0.000000           0         1           rseq
+------ ----------- ----------- --------- --------- ----------------
+100.00    0.760462           3    205184         8 total
+```
 
 ### Read с кэшем
+```
 Overall Statistics:
-Average read latency: 0.00668384 seconds
-Minimum read latency: 0.00609573 seconds
-Maximum read latency: 0.00970559 seconds
+Average read latency: 0.00879 seconds
+Minimum read latency: 0.00836888 seconds
+Maximum read latency: 0.0124289 seconds
+```
+
+```
+% time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+ 98.92    0.051181           1     25702           pread64
+  0.43    0.000220           1       111         5 openat
+  0.42    0.000217           2       100           fsync
+  0.22    0.000116           1       106           close
+  0.01    0.000005           0         7           brk
+  0.00    0.000000           0         5           read
+  0.00    0.000000           0         5           write
+  0.00    0.000000           0         7           fstat
+  0.00    0.000000           0        26           mmap
+  0.00    0.000000           0         7           mprotect
+  0.00    0.000000           0         1           munmap
+  0.00    0.000000           0         1         1 access
+  0.00    0.000000           0         1           execve
+  0.00    0.000000           0         1           arch_prctl
+  0.00    0.000000           0         1           futex
+  0.00    0.000000           0         1           set_tid_address
+  0.00    0.000000           0         2         2 newfstatat
+  0.00    0.000000           0         1           set_robust_list
+  0.00    0.000000           0         1           prlimit64
+  0.00    0.000000           0         1           getrandom
+  0.00    0.000000           0         1           rseq
+------ ----------- ----------- --------- --------- ----------------
+100.00    0.051739           1     26088         8 total
+```
 
 ### Сравнение производительности
+Запущены программы-загрузчики для чтения и записи данных в файл размером 1 МБ (1,048,576 байт) с использованием блоков размером 512 байт.
+Тесты проводились как с использованием блочного кэша, так и без него, для оценки влияния кэширования на производительность и количество системных вызовов.
 
+Размеры блоков и кэша
+
+- Размер блока в бенчмарках: 512 байт
+- Размер блока в кэше: 4096 байт
+- Количество блоков в файле:
+  - При размере блока 512 байт: 1,048,576 / 512 = 2048 блоков 
+  - При размере блока 4096 байт: 1,048,576 / 4096 = 256 блоков 
+- Максимальный размер кэша: 1024 блока (1024 * 4096 байт = 4,194,304 байт или 4 МБ)
+
+**Запись без кэша**
+
+- Среднее время записи: 0.0822461 секунд
+- Количество системных вызовов `write`: 204 805
+
+Ожидалось, что количество записей будет 1 048 576 / 512 = 2048 вызовов `write`. При 100 итерациях: 204 800, что близко к реальному значению.
+
+**Запись с кэшем**
+
+- Среднее время записи: 0.0075996 секунд
+- Количество системных вызовов `pwrite64`: 25 600
+- Количество системных вызовов `pread64`: 25 602
+
+Ожидалось, что количество записей будет 1 048 576 / 4096 = 256 вызовов `pwrite64`. При 100 итерациях: 25 600.
+Время записи с кэшем уменьшилось в 10 раз, что логично учитывая меньшее количество обращений к диску.
+
+
+**Чтение без кэша**
+
+- Среднее время чтения: 0.0300317 секунд
+- Количество системных вызовов `read`: 204 905
+
+Аналогично ожидается 2048 вызовов `read` * 100 итераций = 204 800.
+
+**Чтение с кэшем**
+
+- Среднее время чтения: 0.00879 секунд
+- Количество системных вызовов `pread64`: 25 702
+
+Ожидаемое количество вызовов `pread64` = 256 * 100 = 25 600.
+Время чтения с кэшем уменьшилось в 3.5 раза.
 
 ### Выводы
+В ходе выполнения проекта был разработан блочный кэш в пространстве пользователя с политикой вытеснения Second-Chance. Проведенные тесты показали значительное улучшение производительности при использовании кэша как для операций чтения, так и для операций записи.

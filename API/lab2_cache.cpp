@@ -11,7 +11,7 @@
 #include <sys/stat.h>
 
 #define BLOCK_SIZE 4096     // Block size in bytes
-#define MAX_CACHE_SIZE 64 // Max blocks in cache
+#define MAX_CACHE_SIZE 1048 // Max blocks in cache
 
 struct CacheBlock {
     char* data;           // Pointer to block data
@@ -82,7 +82,7 @@ char* allocate_aligned_buffer() {
  * @param mode File mode, same as in open()
  * @return Integer file descriptor
  */
-int lab2_open(const char* path, int flags, mode_t mode) {
+int lab2_open(const char* path, const int flags, const mode_t mode) {
     const int fd = open(path, flags | O_DIRECT, mode);  // Read and write, and bypass OS cache
     if (fd < 0) {
         perror("open");
@@ -196,7 +196,7 @@ ssize_t lab2_read(const int fd, void* buf, const size_t count) {
  * @param count Number of bytes to write
  * @return Number of bytes written on success, -1 on failure
  */
-ssize_t lab2_write(int fd, const void* buf, const size_t count) {
+ssize_t lab2_write(const int fd, const void* buf, const size_t count) {
     auto& [found_fd, offset] = get_file_descriptor(fd);
     if (found_fd < 0 || offset < 0) {
         errno = EBADF;
@@ -260,7 +260,7 @@ ssize_t lab2_write(int fd, const void* buf, const size_t count) {
  * @param whence Positioning mode (only SEEK_SET supported)
  * @return New file's offset on success, -1 on failure
  */
-off_t lab2_lseek(const int fd, off_t offset, const int whence) {
+off_t lab2_lseek(const int fd, const off_t offset, const int whence) {
     auto& [found_fd, file_offset] = get_file_descriptor(fd);
     if (found_fd < 0 || file_offset < 0) {
         errno = EBADF;
