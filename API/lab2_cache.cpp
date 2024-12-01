@@ -10,9 +10,8 @@
 #include <cerrno>
 #include <sys/stat.h>
 
-
 #define BLOCK_SIZE 4096     // Block size in bytes
-#define MAX_CACHE_SIZE 1024 // Max blocks in cache
+#define MAX_CACHE_SIZE 64 // Max blocks in cache
 
 struct CacheBlock {
     char* data;           // Pointer to block data
@@ -129,22 +128,29 @@ ssize_t lab2_read(const int fd, void* buf, const size_t count) {
 
     while (bytes_read < count) {
         off_t block_id = offset / BLOCK_SIZE;
-        const size_t block_offset = offset % BLOCK_SIZE;
-        const size_t bytes_to_read = std::min(BLOCK_SIZE - block_offset, count - bytes_read); // Both values guaranteed to be positive
+        const size_t block_offset = offset % BLOCK_SIZE; // Offset within block
+        const size_t bytes_to_read = std::min(BLOCK_SIZE - block_offset, count - bytes_read); // To read from block
 
         // Check if block is in cache
         CacheKey key = {found_fd, block_id};
         auto cache_iterator = cache_table.find(key);
         if (cache_iterator != cache_table.end()) {
             // HIT: Read from cache
-            CacheBlock& block = cache_iterator->second;
-            block.was_accessed = true;
-            std::memcpy(buffer + bytes_read, block.data + block_offset, bytes_to_read); // Copy from cache to buffer
+
+            CacheBlock& found_block = cache_iterator->second;
+            found_block.was_accessed = true;
+            size_t available_bytes = BLOCK_SIZE - block_offset; // What's available in block
+            const size_t bytes_from_block = std::min(bytes_to_read, available_bytes); // Compare what we need with what's available
+            std::memcpy(buffer + bytes_read, found_block.data + block_offset, bytes_from_block);
+            offset += bytes_from_block;
+            bytes_read += bytes_from_block;
         } else {
             // MISS: Read block from disk
-            if (cache_table.size() >= MAX_CACHE_SIZE) {
+
+            if (cache_table.size() >= MAX_CACHE_SIZE) { // Cache is full, evict a block
                 free_cache_block();
             }
+
             char* aligned_buf = allocate_aligned_buffer();
             ssize_t ret = pread(found_fd, aligned_buf, BLOCK_SIZE, block_id * BLOCK_SIZE);
             if (ret < 0) {
@@ -152,21 +158,33 @@ ssize_t lab2_read(const int fd, void* buf, const size_t count) {
                 perror("pread");
                 free(aligned_buf);
                 return -1;
-            } else if (ret == 0) {
-                // EOF, fill with zeros
-                std::memset(aligned_buf, 0, BLOCK_SIZE);
-            } else if (ret < BLOCK_SIZE) {
-                // Partial read, fill rest with zeros
+            }
+            if (ret == 0) {
+                // EOF reached
+                free(aligned_buf);
+                break; // Exit the loop as there's no more data to read
+            }
+            // Partial read or full block read
+            const auto valid_data_size = static_cast<size_t>(ret);
+            // Fill the rest of the block with zeros if partial read
+            if (ret < BLOCK_SIZE) {
                 std::memset(aligned_buf + ret, 0, BLOCK_SIZE - ret);
             }
-            // Add to cache
-            const CacheBlock block = {aligned_buf, false, true};
-            cache_table[key] = block;
+            // Add new block to cache
+            const CacheBlock new_block = {aligned_buf, false, true};
+            cache_table[key] = new_block;
             cache_queue.push_back(key);
-            std::memcpy(buffer + bytes_read, aligned_buf + block_offset, bytes_to_read);
+
+            size_t available_bytes = valid_data_size - block_offset; // What's available in block
+            if (available_bytes <= 0) {
+                // No valid data available after the offset
+                break;
+            }
+            const size_t bytes_from_block = std::min(bytes_to_read, available_bytes); // Compare what we need with what's available
+            std::memcpy(buffer + bytes_read, aligned_buf + block_offset, bytes_from_block);
+            offset += bytes_from_block;
+            bytes_read += bytes_from_block;
         }
-        offset += bytes_to_read;
-        bytes_read += bytes_to_read;
     }
     return bytes_read;
 }

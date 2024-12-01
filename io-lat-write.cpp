@@ -6,7 +6,7 @@ void print_usage(const char* program_name) {
     std::cerr << "Usage: " << program_name << " <iterations> [-v] [--use-cache]" << std::endl;
 }
 
-int main(int argc, char* argv[]) {
+int main(const int argc, char* argv[]) {
 
     std::cout << "=== Starting " << argv[0] <<" benchmark ===" << std::endl;
 
