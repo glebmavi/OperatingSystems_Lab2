@@ -3,8 +3,9 @@
 
 #include <cstddef>
 #include <sys/types.h>
+#include <fcntl.h>
 
-int lab2_open(const char* path);
+int lab2_open(const char* path, int flags, mode_t mode);
 
 int lab2_close(int fd);
 

@@ -28,18 +28,20 @@ struct FileDescriptor {
 typedef std::pair<int, off_t> CacheKey; // (file descriptor, block id corresponding to offset)
 
 std::map<int, FileDescriptor> fd_table;     // Table for file descriptors
-std::map<CacheKey, CacheBlock> cache;       // Table for cache blocks
+std::map<CacheKey, CacheBlock> cache_table;       // Table for cache blocks
 std::list<CacheKey> cache_queue;            // Queue for Second-Chance
 
 // Helper functions
-FileDescriptor get_file_descriptor(int fd);
+FileDescriptor& get_file_descriptor(int fd);
 
-
+/**
+ * Frees a single cache block from memory.
+ */
 void free_cache_block() {
     while (true) {
         CacheKey key = cache_queue.front();
         cache_queue.pop_front();
-        CacheBlock& block = cache[key];
+        CacheBlock& block = cache_table[key];
         if (block.was_accessed) {
             // Has been referenced, so reset reference bit and move to back
             block.was_accessed = false;
@@ -55,7 +57,7 @@ void free_cache_block() {
             }
             // Remove from cache
             free(block.data);
-            cache.erase(key);
+            cache_table.erase(key);
             break;
         }
     }
@@ -77,10 +79,12 @@ char* allocate_aligned_buffer() {
 /**
  * Opens a file with direct I/O.
  * @param path Path to file
+ * @param flags File flags, same as in open()
+ * @param mode File mode, same as in open()
  * @return Integer file descriptor
  */
-int lab2_open(const char* path) {
-    const int fd = open(path, O_RDWR | O_DIRECT);  // Read and write, and bypass OS cache
+int lab2_open(const char* path, int flags, mode_t mode) {
+    const int fd = open(path, flags | O_DIRECT, mode);  // Read and write, and bypass OS cache
     if (fd < 0) {
         perror("open");
         return -1;
@@ -107,6 +111,13 @@ int lab2_close(const int fd) {
     return result;
 }
 
+/**
+ * Reads data from a file into a buffer.
+ * @param fd File descriptor
+ * @param buf Buffer to read into
+ * @param count Number of bytes to read
+ * @return Number of bytes read on success, -1 on failure
+ */
 ssize_t lab2_read(const int fd, void* buf, const size_t count) {
     auto& [found_fd, offset] = get_file_descriptor(fd);
     if (found_fd < 0 || offset < 0) {
@@ -123,15 +134,15 @@ ssize_t lab2_read(const int fd, void* buf, const size_t count) {
 
         // Check if block is in cache
         CacheKey key = {found_fd, block_id};
-        auto cache_iterator = cache.find(key);
-        if (cache_iterator != cache.end()) {
+        auto cache_iterator = cache_table.find(key);
+        if (cache_iterator != cache_table.end()) {
             // HIT: Read from cache
             CacheBlock& block = cache_iterator->second;
             block.was_accessed = true;
             std::memcpy(buffer + bytes_read, block.data + block_offset, bytes_to_read); // Copy from cache to buffer
         } else {
             // MISS: Read block from disk
-            if (cache.size() >= MAX_CACHE_SIZE) {
+            if (cache_table.size() >= MAX_CACHE_SIZE) {
                 free_cache_block();
             }
             char* aligned_buf = allocate_aligned_buffer();
@@ -150,7 +161,7 @@ ssize_t lab2_read(const int fd, void* buf, const size_t count) {
             }
             // Add to cache
             const CacheBlock block = {aligned_buf, false, true};
-            cache[key] = block;
+            cache_table[key] = block;
             cache_queue.push_back(key);
             std::memcpy(buffer + bytes_read, aligned_buf + block_offset, bytes_to_read);
         }
@@ -160,6 +171,13 @@ ssize_t lab2_read(const int fd, void* buf, const size_t count) {
     return bytes_read;
 }
 
+/**
+ * Writes data from a buffer to a file.
+ * @param fd File descriptor
+ * @param buf Buffer to write from
+ * @param count Number of bytes to write
+ * @return Number of bytes written on success, -1 on failure
+ */
 ssize_t lab2_write(int fd, const void* buf, const size_t count) {
     auto& [found_fd, offset] = get_file_descriptor(fd);
     if (found_fd < 0 || offset < 0) {
@@ -176,12 +194,12 @@ ssize_t lab2_write(int fd, const void* buf, const size_t count) {
 
         // Check if block is in cache
         CacheKey key = {found_fd, block_id};
-        auto cache_it = cache.find(key);
+        auto cache_it = cache_table.find(key);
         CacheBlock* block_ptr = nullptr;
 
-        if (cache_it == cache.end()) { // MISS
+        if (cache_it == cache_table.end()) { // MISS
             // If cache is full, evict a block
-            if (cache.size() >= MAX_CACHE_SIZE) {
+            if (cache_table.size() >= MAX_CACHE_SIZE) {
                 free_cache_block();
             }
             // Read the block from disk to cache
@@ -200,7 +218,7 @@ ssize_t lab2_write(int fd, const void* buf, const size_t count) {
                 std::memset(aligned_buf + ret, 0, BLOCK_SIZE - ret);
             }
             // Add read block to cache
-            CacheBlock& block = cache[key] = {aligned_buf, false, true};
+            CacheBlock& block = cache_table[key] = {aligned_buf, false, true};
             cache_queue.push_back(key);
             block_ptr = &block;
         } else { // HIT
@@ -242,6 +260,11 @@ off_t lab2_lseek(const int fd, off_t offset, const int whence) {
     return file_offset;
 }
 
+/**
+ * Flushes dirty blocks to disk for a file descriptor.
+ * @param fd_to_sync File descriptor to sync
+ * @return 0 on success, -1 on failure
+ */
 int lab2_fsync(const int fd_to_sync) {
     const int found_fd = get_file_descriptor(fd_to_sync).fd;
     if (found_fd < 0) {
@@ -249,7 +272,7 @@ int lab2_fsync(const int fd_to_sync) {
         return -1;
     }
     // Write back dirty blocks for this file descriptor
-    for (auto& [key, block] : cache) {
+    for (auto& [key, block] : cache_table) {
         if (key.first == found_fd && block.is_dirty) {
             ssize_t ret = pwrite(found_fd, block.data, BLOCK_SIZE, key.second * BLOCK_SIZE);
             if (ret != BLOCK_SIZE) {
@@ -263,8 +286,12 @@ int lab2_fsync(const int fd_to_sync) {
     return fsync(found_fd);
 }
 
-
-FileDescriptor get_file_descriptor(const int fd) {
+/**
+ * Gets the file descriptor struct for a given file descriptor id.
+ * @param fd File descriptor
+ * @return FileDescriptor struct
+ */
+FileDescriptor& get_file_descriptor(const int fd) {
     const auto iterator = fd_table.find(fd);
     if (iterator == fd_table.end()) {
         static FileDescriptor invalid_fd = {-1, -1};

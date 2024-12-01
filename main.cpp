@@ -3,12 +3,12 @@
 #include <string>
 
 void print_usage(const char* program_name) {
-    std::cerr << "Использование: " << program_name << " <iterations> [-v] [--use-cache]" << std::endl;
+    std::cerr << "Usage: " << program_name << " <iterations> [-v] [--use-cache]" << std::endl;
 }
 
 int main(int argc, char* argv[]) {
 
-    std::cout << "=== Запуск бенчмарка " << argv[0] << " ===" << std::endl;
+    std::cout << "=== Starting " << argv[0] <<" benchmark ===" << std::endl;
 
     if (argc < 2 || argc > 4) {
         print_usage(argv[0]);
@@ -19,10 +19,10 @@ int main(int argc, char* argv[]) {
     try {
         iterations = std::stoi(argv[1]);
         if (iterations <= 0) {
-            throw std::invalid_argument("Количество итераций должно быть положительным.");
+            throw std::invalid_argument("Iterations must be positive.");
         }
     } catch (const std::exception& e) {
-        std::cerr << "Некорректное значение итераций: " << argv[1] << std::endl;
+        std::cerr << "Invalid iterations value: " << argv[1] << std::endl;
         return 1;
     }
 
@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
         } else if (arg == "--use-cache") {
             use_cache = true;
         } else {
-            std::cerr << "Неизвестный аргумент: " << arg << std::endl;
+            std::cerr << "Unknown argument: " << arg << std::endl;
             print_usage(argv[0]);
             return 1;
         }
