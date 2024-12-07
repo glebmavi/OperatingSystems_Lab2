@@ -11,7 +11,11 @@
 #include <sys/stat.h>
 
 #define BLOCK_SIZE 4096     // Block size in bytes
-#define MAX_CACHE_SIZE 1048 // Max blocks in cache
+#define MAX_CACHE_SIZE 128 // Max blocks in cache
+
+// Global counters for cache hits and misses
+static unsigned long cache_hits = 0;
+static unsigned long cache_misses = 0;
 
 struct CacheBlock {
     char* data;           // Pointer to block data
@@ -35,9 +39,10 @@ FileDescriptor& get_file_descriptor(int fd);
 
 /**
  * Frees a single cache block from memory.
+ * Retrieves LChecks if a page has was_accessed bit, and if not,
  */
 void free_cache_block() {
-    while (true) {
+    while (!cache_queue.empty()) {
         CacheKey key = cache_queue.front();
         cache_queue.pop_front();
         CacheBlock& block = cache_table[key];
@@ -136,6 +141,7 @@ ssize_t lab2_read(const int fd, void* buf, const size_t count) {
         auto cache_iterator = cache_table.find(key);
         if (cache_iterator != cache_table.end()) {
             // HIT: Read from cache
+            cache_hits++;
 
             CacheBlock& found_block = cache_iterator->second;
             found_block.was_accessed = true;
@@ -146,13 +152,14 @@ ssize_t lab2_read(const int fd, void* buf, const size_t count) {
             bytes_read += bytes_from_block;
         } else {
             // MISS: Read block from disk
+            cache_misses++;
 
             if (cache_table.size() >= MAX_CACHE_SIZE) { // Cache is full, evict a block
                 free_cache_block();
             }
 
             char* aligned_buf = allocate_aligned_buffer();
-            ssize_t ret = pread(found_fd, aligned_buf, BLOCK_SIZE, block_id * BLOCK_SIZE);
+            const ssize_t ret = pread(found_fd, aligned_buf, BLOCK_SIZE, block_id * BLOCK_SIZE);
             if (ret < 0) {
                 // Failed to read
                 perror("pread");
@@ -216,6 +223,8 @@ ssize_t lab2_write(const int fd, const void* buf, const size_t count) {
         CacheBlock* block_ptr = nullptr;
 
         if (cache_it == cache_table.end()) { // MISS
+            cache_misses++;
+
             // If cache is full, evict a block
             if (cache_table.size() >= MAX_CACHE_SIZE) {
                 free_cache_block();
@@ -240,12 +249,13 @@ ssize_t lab2_write(const int fd, const void* buf, const size_t count) {
             cache_queue.push_back(key);
             block_ptr = &block;
         } else { // HIT
+            cache_hits++;
             block_ptr = &cache_it->second;
+            block_ptr->was_accessed = true;
         }
         // Write to cache
         std::memcpy(block_ptr->data + block_offset, buffer + bytes_written, to_write);
         block_ptr->is_dirty = true;
-        block_ptr->was_accessed = true;
 
         offset += to_write;
         bytes_written += to_write;
@@ -316,4 +326,17 @@ FileDescriptor& get_file_descriptor(const int fd) {
         return invalid_fd;
     }
     return iterator->second;
+}
+
+unsigned long lab2_get_cache_hits() {
+    return cache_hits;
+}
+
+unsigned long lab2_get_cache_misses() {
+    return cache_misses;
+}
+
+void lab2_reset_cache_counters() {
+    cache_hits = 0;
+    cache_misses = 0;
 }

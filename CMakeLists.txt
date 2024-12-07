@@ -22,3 +22,17 @@ add_executable(OS_Lab2_read io-lat-read.cpp
         Bench/IOLatencyReadBenchmark.h)
 target_link_libraries(OS_Lab2_read lab2_cache)
 target_include_directories(OS_Lab2_read PRIVATE API)
+
+# rand-read
+add_executable(OS_Lab2_rand_read rand-read.cpp
+        Bench/RandReadBenchmark.cpp
+        Bench/RandReadBenchmark.h)
+target_link_libraries(OS_Lab2_rand_read lab2_cache)
+target_include_directories(OS_Lab2_rand_read PRIVATE API)
+
+# rand-write
+add_executable(OS_Lab2_rand_write rand-write.cpp
+        Bench/RandWriteBenchmark.cpp
+        Bench/RandWriteBenchmark.h)
+target_link_libraries(OS_Lab2_rand_write lab2_cache)
+target_include_directories(OS_Lab2_rand_write PRIVATE API)

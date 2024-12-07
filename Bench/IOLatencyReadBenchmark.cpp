@@ -91,5 +91,9 @@ namespace IOLatencyReadBenchmark {
         std::cout << "Average read latency: " << avg_duration << " seconds\n";
         std::cout << "Minimum read latency: " << min_duration << " seconds\n";
         std::cout << "Maximum read latency: " << max_duration << " seconds\n";
+
+        std::cout << "Cache hits: " << lab2_get_cache_hits() << std::endl;
+        std::cout << "Cache misses: " << lab2_get_cache_misses() << std::endl;
+        lab2_reset_cache_counters();
     }
 }
