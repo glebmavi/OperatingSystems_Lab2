@@ -83,7 +83,6 @@ namespace IOLatencyReadBenchmark {
             }
         }
 
-        // Calculating overall statistics
         const double avg_duration = std::accumulate(durations.begin(), durations.end(), 0.0) / durations.size();
         const double min_duration = *std::ranges::min_element(durations);
         const double max_duration = *std::ranges::max_element(durations);
@@ -93,8 +92,10 @@ namespace IOLatencyReadBenchmark {
         std::cout << "Minimum read latency: " << min_duration << " seconds\n";
         std::cout << "Maximum read latency: " << max_duration << " seconds\n";
 
-        std::cout << "Cache hits: " << lab2_get_cache_hits() << std::endl;
-        std::cout << "Cache misses: " << lab2_get_cache_misses() << std::endl;
-        lab2_reset_cache_counters();
+        if (use_cache) {
+            std::cout << "Cache hits: " << lab2_get_cache_hits() << std::endl;
+            std::cout << "Cache misses: " << lab2_get_cache_misses() << std::endl;
+            lab2_reset_cache_counters();
+        }
     }
 }

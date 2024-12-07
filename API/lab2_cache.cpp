@@ -1,17 +1,16 @@
 #include "lab2_cache.h"
 #include <fcntl.h>
 #include <unistd.h>
-#include <sys/mman.h>
 #include <map>
 #include <list>
 #include <vector>
 #include <cstring>
 #include <iostream>
 #include <cerrno>
-#include <sys/stat.h>
 
 #define BLOCK_SIZE 4096     // Block size in bytes
-#define MAX_CACHE_SIZE 128 // Max blocks in cache
+#define MAX_CACHE_SIZE 32 // Max blocks in cache
+// 4096 * 32 = 128KB
 
 // Global counters for cache hits and misses
 static unsigned long cache_hits = 0;

@@ -7,4 +7,4 @@ namespace RandReadBenchmark {
     void run(const std::string& file_path, int iterations, bool verbose, bool use_cache);
 }
 
-#endif //RANDREADBENCHMARK_H
+#endif

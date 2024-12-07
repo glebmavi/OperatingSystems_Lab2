@@ -33,10 +33,10 @@ add_executable(OS_Lab2_rand_read rand-read.cpp
 target_link_libraries(OS_Lab2_rand_read lab2_cache)
 target_include_directories(OS_Lab2_rand_read PRIVATE API)
 
-## rand-write
-#add_executable(OS_Lab2_rand_write rand-write.cpp
-#        Bench/RandWriteBenchmark.cpp
-#        Bench/RandWriteBenchmark.h
-#        BenchUtils/BenchmarkMain.h)
-#target_link_libraries(OS_Lab2_rand_write lab2_cache)
-#target_include_directories(OS_Lab2_rand_write PRIVATE API)
+# rand-write
+add_executable(OS_Lab2_rand_write rand-write.cpp
+        Bench/RandWriteBenchmark.cpp
+        Bench/RandWriteBenchmark.h
+        BenchUtils/BenchmarkMain.h)
+target_link_libraries(OS_Lab2_rand_write lab2_cache)
+target_include_directories(OS_Lab2_rand_write PRIVATE API)

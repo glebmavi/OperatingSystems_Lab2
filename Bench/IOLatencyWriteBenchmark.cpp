@@ -22,7 +22,7 @@ namespace IOLatencyWriteBenchmark {
         durations.reserve(iterations);
 
         for (int i = 0; i < iterations; ++i) {
-            remove("testfile.dat"); // Delete the file if it already exists
+            remove("testfile.dat"); // Delete the file if it already exists for clean write
 
             auto start = std::chrono::high_resolution_clock::now();
 
@@ -96,8 +96,10 @@ namespace IOLatencyWriteBenchmark {
         std::cout << "Minimum write latency: " << min_duration << " seconds\n";
         std::cout << "Maximum write latency: " << max_duration << " seconds\n";
 
-        std::cout << "Cache hits: " << lab2_get_cache_hits() << std::endl;
-        std::cout << "Cache misses: " << lab2_get_cache_misses() << std::endl;
-        lab2_reset_cache_counters();
+        if (use_cache) {
+            std::cout << "Cache hits: " << lab2_get_cache_hits() << std::endl;
+            std::cout << "Cache misses: " << lab2_get_cache_misses() << std::endl;
+            lab2_reset_cache_counters();
+        }
     }
 }
