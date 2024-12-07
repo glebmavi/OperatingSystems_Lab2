@@ -17,6 +17,7 @@ namespace IOLatencyReadBenchmark {
     void run(const std::string& file_path, const int iterations, const bool verbose, const bool use_cache) {
         std::vector<char> buffer(BLOCK_SIZE); // Buffer for reading
         std::vector<double> durations; // Time durations for each iteration
+        durations.reserve(iterations);
 
         for (int i = 0; i < iterations; ++i) {
             auto start = std::chrono::high_resolution_clock::now();

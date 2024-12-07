@@ -19,6 +19,7 @@ namespace IOLatencyWriteBenchmark {
     void run(const int iterations, const bool verbose, const bool use_cache) {
         const std::vector buffer(BLOCK_SIZE, 'a'); // Buffer for writing
         std::vector<double> durations; // Time durations for each iteration
+        durations.reserve(iterations);
 
         for (int i = 0; i < iterations; ++i) {
             remove("testfile.dat"); // Delete the file if it already exists

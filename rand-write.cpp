@@ -1,0 +1,18 @@
+#include "BenchUtils/BenchmarkMain.h"
+#include "Bench/RandWriteBenchmark.h"
+#include <iostream>
+
+int main(const int argc, char* argv[]) {
+    std::cout << "=== Starting " << argv[0] << " benchmark ===" << std::endl;
+
+    auto benchmark_func = [](const BenchmarkConfig& config) -> int {
+        RandWriteBenchmark::run(config.iterations, config.verbose, config.use_cache);
+        return 0;
+    };
+
+    if (!run_benchmark_main(argc, argv, false, benchmark_func)) {
+        return 1;
+    }
+
+    return 0;
+}
